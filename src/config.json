@@ -1,0 +1,9 @@
+{
+  "name   ": "h5_asr",
+  "version": "0.1.1",
+  "host   ": "http://enasr.edu.hivoice.cn",
+  "port   ": 5858,
+  "mp3host": "",
+  "mp3port": 80,
+  "appkey ": "qkcwbvgdobduan6mdmhwxde465ekvzgwphh4eiyc"
+}

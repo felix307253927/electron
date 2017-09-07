@@ -1,0 +1,17 @@
+{
+  "presets": [
+    "stage-0"
+  ],
+  "plugins": [
+    "transform-class-properties",
+    [
+      "component",
+      [
+        {
+          "libraryName": "element-ui",
+          "styleLibraryName": "theme-default"
+        }
+      ]
+    ]
+  ]
+}

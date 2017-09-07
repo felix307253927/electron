@@ -1,0 +1,81 @@
+{
+  "name": "h5_asr",
+  "version": "0.0.1",
+  "description": "h5_asr",
+  "main": "./app/main/index.js",
+  "scripts": {
+    "compile": "webpack",
+    "start": "electron .",
+    "opus": "gulp opus",
+    "build": "electron-packager ./ --platform=win32 --arch=ia32 --out ./dist --version 1.0.0 --overwrite --icon=./src/resources/image/logo.png",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pack": "build --win --ia32 --dir",
+    "win": "build --win --ia32",
+    "win64": "build --win --x64",
+    "dist": "build"
+  },
+  "keywords": [
+    "asr"
+  ],
+  "author": "felix",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.16.2",
+    "element-ui": "^1.4.3",
+    "lamejs": "^1.2.0",
+    "uuid": "^3.1.0",
+    "vue": "^2.4.2",
+    "vue-router": "^2.7.0",
+    "vuex": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.6.10",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-component": "^0.10.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-stage-0": "^6.24.1",
+    "copy-webpack-plugin": "^4.0.1",
+    "css-loader": "^0.28.5",
+    "electron": "^1.7.5",
+    "electron-builder": "^19.26.3",
+    "extract-text-webpack-plugin": "^3.0.0",
+    "file-loader": "^0.11.2",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-uglify": "^3.0.0",
+    "html-webpack-plugin": "^2.30.1",
+    "node-sass": "^4.5.3",
+    "sass-loader": "^6.0.6",
+    "style-loader": "^0.18.2",
+    "vue-loader": "^13.0.4",
+    "vue-template-compiler": "^2.4.2",
+    "webpack": "^3.5.5",
+    "webpack-dev-server": "^2.7.1",
+    "webpack-merge": "^4.1.0"
+  },
+  "build": {
+    "appId": "yunzhisheng.com",
+    "linux": {
+      "target": "tar.gz",
+      "vendor": "云知声",
+      "maintainer": "felix",
+      "icon": "./src/resources/icon/icon.png"
+    },
+    "win": {
+      "icon": "./src/resources/icon/icon.ico",
+      "legalTrademarks": "云知声",
+      "publisherName": "云知声",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "./src/resources/icon/icon.ico",
+      "language": "2052"
+    },
+    "mac": {
+      "icon": "./src/resources/icon/icon.icns"
+    }
+  }
+}
