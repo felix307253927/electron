@@ -6,19 +6,12 @@
 
 import Vue from 'vue';
 import Head from 'views/components/head.vue';
-import EvalSDK from 'js/EvalSDK';
 import store from 'store/store';
 import router from 'router';
 import {HEAD_TYPE} from 'store/types';
 import 'js/filter';
 import 'scss/style.scss'
 
-//加载SDK
-Vue.use(function (Vue) {
-  Vue.prototype.$sdk = new EvalSDK({
-    channels: 2
-  }, store)
-})
 
 //初始化 vuex 路由信息
 router.onReady((r) => {

@@ -7,7 +7,15 @@ import {HEAD_TYPE} from '../types';
 import router from 'router'
 
 export default {
-  state    : {type: 0},
+  state    : {
+    type  : 0,
+    config: {
+      host   : config.host,
+      port   : config.port,
+      mp3host: config.mp3host,
+      mp3port: config.mp3port,
+    }
+  },
   actions  : {
     [HEAD_TYPE]({commit}, type) {
       commit(HEAD_TYPE, type)

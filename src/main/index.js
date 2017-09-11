@@ -17,11 +17,11 @@ class App {
   }
   
   initApp() {
-    let cf        = new Config()
-    global.config = cf.info
     app.on('ready', () => {
-      this.main = new MainView(this.main)
-      this.tray = new AppTray(this.main)
+      let cf        = new Config()
+      global.config = cf.info
+      this.main     = new MainView(this.main)
+      this.tray     = new AppTray(this.main)
       cf.register()
     })
     
@@ -29,8 +29,10 @@ class App {
       // 对于OS X系统，当dock图标被点击后会重新创建一个app窗口，并且不会有其他
       // 窗口打开
       if (!this.main) {
-        this.main = new MainView()
-        this.tray = new AppTray(this.main)
+        let cf        = new Config()
+        global.config = cf.info
+        this.main     = new MainView()
+        this.tray     = new AppTray(this.main)
       }
       this.main.show();
     })

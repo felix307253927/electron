@@ -28,7 +28,16 @@
             {{((scope.row.endTime - scope.row.startTime) / 1000) >> 0 | time(2)}}
           </template>
         </el-table-column>
-        <el-table-column prop="text" align="center" label="识别文本"></el-table-column>
+        <el-table-column prop="text" align="center" label="识别文本">
+          <template scope="scope">
+            <el-popover
+              title="识别结果:"
+              trigger="hover"
+              :content="scope.row.oText">
+              <div slot="reference" @input="change($event, scope.row)" contenteditable="true">{{scope.row.text}}</div>
+            </el-popover>
+          </template>
+        </el-table-column>
         <el-table-column width="180" prop="voice" align="center" label="音频">
           <template scope="scope">
 
@@ -39,15 +48,17 @@
     <footer class="footer">
       <div>
         <el-button :disabled="!isEnd" @click="saveMp3()">导出原始录音</el-button>
-        <el-button :disabled="!isEnd">保存文本</el-button>
-        <el-button :disabled="!isEnd">导出会议</el-button>
+        <el-button :disabled="!isEnd" @click="saveMeetText">保存文本</el-button>
+        <el-button :disabled="!isEnd" @click="exportMeet">导出会议</el-button>
       </div>
     </footer>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
+  import Vue from 'vue';
   import {mapActions, mapGetters} from 'vuex';
+  import EvalSDK from 'js/EvalSDK';
   import {
     MEET_IS_RECORD,
     MEET_IS_END,
@@ -57,9 +68,12 @@
     MEET_ADD_RESULT,
     MEET_MOD_RESULT,
     MEET_RESULT,
-    MEET_ORIGIN,
-    MEET_RESET
+    MEET_RESET,
+    MEET_MEMBERS
   } from 'store/types';
+
+  const {MEETING, MEETING_SAVE} = require('main/util/types')
+  const {ipcRenderer}           = require('electron')
 
   export default {
     computed: {
@@ -67,7 +81,7 @@
         startTime: MEET_START_TIME,
         timer    : MEET_TIMER,
         list     : MEET_RESULT,
-        origin   : MEET_ORIGIN
+        members  : MEET_MEMBERS
       }),
       meetingName: {
         get() {
@@ -99,9 +113,18 @@
     },
     methods : {
       ...mapActions({
-        addResult: MEET_ADD_RESULT,
-        reset    : MEET_RESET,
+        update: MEET_MOD_RESULT,
+        reset : MEET_RESET,
       }),
+      change(e, res) {
+        clearTimeout(this.cgTime)
+        this.cgTime = setTimeout(() => {
+          this.update({
+            target: res,
+            text  : e.target.textContent
+          })
+        }, 1000)
+      },
       record() {
         if (!this.isRecord) {
           this.$sdk.start()
@@ -116,17 +139,39 @@
       saveMp3() {
         this.$sdk.saveMp3(this.meetingName)
       },
+      saveMeetText() {
+        console.log(this.list.map(r => r.text).join(' '))
+      },
       exportMeet() {
         let meeting = {
-          name     : this.meetingName,
-          startTime: this.startTime,
-          time     : this.timer,
-          result   : this.list,
-          origin   : this.origin
+          meetingTopic: this.meetingName,
+          startTime   : this.startTime,
+          endTime     : this.startTime + this.timer * 1000,
+          result      : this.list,
+          members     : this.members,
         }
+        ipcRenderer.send(MEETING, {
+          type: MEETING_SAVE,
+          data: meeting
+        })
+        ipcRenderer.once(MEETING_SAVE, (e, msg) => {
+          this.$message({
+            type   : msg,
+            message: 'success' ? '导出成功!' : '导出失败!'
+          })
+        })
       }
     },
     mounted() {
+      //加载SDK
+      if (!this.$sdk || this.$sdk.channels !== this.members.length) {
+        Vue.use((Vue) => {
+          Vue.prototype.$sdk = new EvalSDK({
+            channels: this.members.length || 1
+          }, this.$store)
+          this.$sdk.initRecorder()
+        })
+      }
     }
   }
 </script>

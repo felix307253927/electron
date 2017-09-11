@@ -16,7 +16,34 @@
 </template>
 
 <script type="text/ecmascript-6">
-  export default {
+  import Vue from 'vue';
+  import {mapGetters, mapActions} from 'vuex';
+  import uuid from 'uuid/v4';
+  import EvalSDK from 'js/EvalSDK';
+  import {
+    TRANS_VOICES,
+    TRANS_STATUS
+  } from 'store/types';
 
+  export default {
+    computed: {
+      ...mapGetters({
+        voices: TRANS_VOICES,
+        status: TRANS_STATUS
+      }),
+      transBtn() {
+        return this.status === 0 ? '开始转写' : '转写中...'
+      }
+    },
+    methods : {
+      ...mapGetters({})
+    },
+    mounted() {
+      if (!this.$trans_sdk) {
+        Vue.use((Vue) => {
+          Vue.prototype.$trans_sdk = new EvalSDK({}, this.$store)
+        })
+      }
+    }
   }
 </script>

@@ -13,7 +13,8 @@ import {
   MEET_ADD_RESULT,
   MEET_MOD_RESULT,
   MEET_RESULT,
-  MEET_ORIGIN
+  MEET_END_RESULT,
+  MEET_MEMBERS
 } from '../types';
 
 const _state = {
@@ -22,8 +23,8 @@ const _state = {
   meetingName: '',
   startTime  : '',
   timer      : 0,
-  resultList : [],
-  originList : [],
+  resultList : [{text: 'hello', oText: '你好'}],
+  members    : []
 }
 let _timer;
 
@@ -50,9 +51,18 @@ export default {
     [MEET_NAME]({commit}, name) {
       commit(MEET_NAME, name)
     },
-    [MEET_ADD_RESULT]({commit}, res) {
-      commit(MEET_ADD_RESULT, res)
+    [MEET_MEMBERS]({commit}, members) {
+      commit(MEET_MEMBERS, members)
     },
+    [MEET_ADD_RESULT]({commit}, res) {
+      commit(MEET_ADD_RESULT, res || {})
+    },
+    [MEET_MOD_RESULT]({commit}, payload) {
+      commit(MEET_MOD_RESULT, payload || {})
+    },
+    [MEET_END_RESULT]({commit}, all) {
+      commit(MEET_END_RESULT, all || [])
+    }
   },
   getters  : {
     [MEET_IS_RECORD] : state => state.isRecord,
@@ -61,7 +71,7 @@ export default {
     [MEET_START_TIME]: state => state.startTime,
     [MEET_TIMER]     : state => state.timer,
     [MEET_RESULT]    : state => state.resultList,
-    [MEET_ORIGIN]    : state => state.originList,
+    [MEET_MEMBERS]   : state => state.members,
   },
   mutations: {
     [MEET_IS_RECORD](state, isRecord) {
@@ -87,17 +97,34 @@ export default {
     [MEET_TIMER](state, timer) {
       state.timer = timer
     },
-    [MEET_ADD_RESULT](state, res) {
-      state.resultList.push(res)
-      state.originList.push(res)
+    [MEET_MEMBERS](state, members) {
+      state.members = members
     },
-    [MEET_MOD_RESULT]({resultList}, res) {
-      for (let i = 0, ret, len = resultList.length; i < len; i++) {
-        ret = resultList[i]
-        if (ret.sessionId === res.sessionId) {
-          return ret.text = res.text
+    [MEET_ADD_RESULT]({resultList}, res) {
+      res.hasMod = false
+      res.oText  = res.text
+      resultList.push(res)
+      resultList.sort((a, b) => a.number - b.number)
+    },
+    [MEET_END_RESULT]({resultList}, all) {
+      all.forEach((res, i) => {
+        let ret = resultList[i]
+        if (ret && ret.hasMod) {
+          ret.oText = res.text
+        } else if (ret) {
+          res.hasMod = false
+          ret.oText  = ret.text = res.text
+        } else {
+          res.hasMod    = false
+          res.oText     = res.text
+          resultList[i] = res
         }
-      }
+      })
+      resultList.sort((a, b) => a.number - b.number)
+    },
+    [MEET_MOD_RESULT](_, payload) {
+      payload.target.hasMod = true
+      payload.target.text   = payload.text
     }
   }
 }

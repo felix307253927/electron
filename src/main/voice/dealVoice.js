@@ -7,7 +7,7 @@ const {Transform}            = require('stream')
 const {app, ipcMain, dialog} = require('electron')
 const fs                     = require('fs')
 const path                   = require('path')
-const {Mp3Encoder}           = require('lamejs')
+const {Encoder}              = require('lame')
 const {
         SAVE_RECORDER,
         RECORDER,
@@ -21,23 +21,11 @@ const {
 class Pcm2Buf extends Transform {
   constructor(options) {
     super(options)
-    this.encoder   = new Mp3Encoder(1, 16000, 32)
-    this.blockSize = 576 * 6;
   }
   
   _transform(chunk, enc, next) {
-    let arr = new Int16Array(chunk.buffer), bs = this.blockSize, encoder = this.encoder, sChunk;
-    for (let i = 0, len = arr.length; i < len; i += bs) {
-      sChunk  = arr.subarray(i, i + bs)
-      let buf = encoder.encodeBuffer(sChunk)
-      if (buf.length > 0) {
-        this.push(Buffer.from(buf.buffer))
-      }
-    }
-    let buf = encoder.flush()
-    if (buf.length > 0) {
-      this.push(Buffer.from(buf.buffer))
-    }
+    console.log(chunk.buffer)
+    this.push(Buffer.from(chunk.buffer))
     next()
   }
 }
@@ -102,7 +90,11 @@ class SaveVoice {
           if (this.streams[i]) {
             let pcmStream = fs.createReadStream(path.join(app.getPath('temp'), `temp_${i}.pcm`))
             let mp3Stream = fs.createWriteStream(filename.replace(/\.(mp3|MP3|Mp3|mP3)$/, `_${i}.mp3`))
-            pcmStream.pipe(new Pcm2Buf()).pipe(mp3Stream)
+            pcmStream.pipe(new Pcm2Buf()).pipe(new Encoder({
+              channels  : 1,
+              bitDepth  : 16,
+              sampleRate: 16000,
+            })).pipe(mp3Stream)
           }
         }
       }

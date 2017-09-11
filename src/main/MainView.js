@@ -4,8 +4,9 @@
  */
 'use strict';
 const {BrowserWindow, ipcMain} = require('electron')
-const path                             = require('path')
-const SaveVoice                        = require('./voice/dealVoice')
+const path                     = require('path')
+const SaveVoice                = require('./voice/dealVoice')
+const Meeting                  = require('./meet/meeting')
 
 class MainView {
   constructor() {
@@ -36,6 +37,7 @@ class MainView {
       }
     })
     new SaveVoice(this.win)
+    new Meeting(this.win)
   }
   
   show() {
