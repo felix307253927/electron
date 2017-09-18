@@ -158,11 +158,23 @@ function EvalSDK(config, store) {
           pcmWorker.onmessage = function (e) {
             switch (e.data.cmd) {
               case 'flush':
-                _this.asr(sessions[i], e.data.buf)
+                _this.asr(sessions[i], e.data.buf).then(data => {
+                  if (data) {
+                    data.currResult.channel = sessions[i].channel
+                    store.dispatch(MEET_ADD_RESULT, data.currResult)
+                  }
+                })
                 ipcRenderer.send(RECORDER, {type: RECORDER_RECEIVE, channel: i, buf: e.data.buf})
                 break;
               case 'end':
-                _this.asr(sessions[i], e.data.buf, true)
+                _this.asr(sessions[i], e.data.buf, true).then(data => {
+                  if (data) {
+                    store.dispatch(MEET_END_RESULT, {
+                      channel: sessions[i].channel,
+                      all    : data.allResult
+                    })
+                  }
+                })
                 ipcRenderer.send(RECORDER, {type: RECORDER_END, channel: i, buf: e.data.buf})
                 hasBuf = true
                 _mp3IsReady.push(i)
@@ -234,47 +246,38 @@ function EvalSDK(config, store) {
    * @param end      是否结束
    */
   _this.asr = function (session, buf, end) {
-    if (session) {
-      let body = null
-      if (!end) {
-        body = new FormData()
-        body.append('voice', new Blob(buf))
-        _this.asr.tryTimes = 0
-      } else {
-        session.end = session.num
-      }
-      axios.post(`${host}:${port}/asr/pcm`, body, {
-        headers: {
-          "X-EngineType": "asr.en_US",
-          "X-Number"    : !end ? session.num : session.num + '$',
-          "session-id"  : session.sid,
-          "appkey"      : appkey
-        }
-      }).then(res => {
-        if (res.data && !res.data.errcode) {
-          if (!end) {
-            res.data.currResult.channel = session.channel
-            store.dispatch(MEET_ADD_RESULT, res.data.currResult)
-          } else {
-            store.dispatch(MEET_END_RESULT, {
-              channel: session.channel,
-              all    : res.data.allResult
-            })
-          }
-        }
-      }).catch(err => {
-        console.error(err)
-        if (end) {
-          if (++_this.asr.tryTimes < 3) {
-            console.log(`第${_this.asr.tryTimes}重试...`)
-            _this.asr(session, buf, end)
-          } else {
-            _this.emit('error', '识别失败!')
-          }
-        }
-      })
-      !end && session.num++
+    let body = null
+    if (!end) {
+      body = new FormData()
+      body.append('voice', new Blob(buf))
+      _this.asr.tryTimes = 0
+    } else {
+      session.end = session.num
     }
+    let ajax = axios.post(`${host}:${port}/asr/pcm`, body, {
+      headers: {
+        "X-EngineType": "asr.en_US",
+        "X-Number"    : !end ? session.num : session.num + '$',
+        "session-id"  : session.sid,
+        "appkey"      : appkey
+      }
+    }).then(res => {
+      if (res.data && !res.data.errcode) {
+        return res.data
+      }
+    }).catch(err => {
+      console.error(err)
+      if (end) {
+        if (++_this.asr.tryTimes < 3) {
+          console.log(`第${_this.asr.tryTimes}重试...`)
+          _this.asr(session, buf, end)
+        } else {
+          _this.emit('error', '识别失败!')
+        }
+      }
+    })
+    !end && session.num++
+    return ajax
   }
 }
 

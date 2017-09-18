@@ -4,10 +4,15 @@
  */
 'use strict';
 
-const {ipcMain, dialog}                       = require('electron');
-const fs                                      = require('fs')
-const path                                    = require('path')
-const {MEETING, MEETING_CREATE, MEETING_SAVE} = require('../util/types');
+const {ipcMain, dialog} = require('electron');
+const fs                = require('fs')
+const path              = require('path')
+const {
+        MEETING,
+        MEETING_CREATE,
+        MEETING_SAVE,
+        MEETING_SAVE_TEXT
+      }                 = require('../util/types');
 
 class Meeting {
   constructor(win) {
@@ -24,6 +29,9 @@ class Meeting {
           break;
         case MEETING_SAVE:
           this.exportMeeting(data.data, e)
+          break;
+        case MEETING_SAVE_TEXT:
+          this.saveMeetingText(data.name, data.data, e)
           break;
       }
     })
@@ -67,6 +75,31 @@ class Meeting {
               e.sender.send(MEETING_SAVE, 'error')
             } else {
               e.sender.send(MEETING_SAVE, 'success')
+            }
+          })
+      }
+    })
+  }
+  
+  saveMeetingText(name, text, e) {
+    let fileName = path.join(global.recentlyUsedPath, name + this.meetingInfo.createTime + '.txt')
+    dialog.showSaveDialog(this.win, {
+      title      : "保存会议内容",
+      defaultPath: fileName,
+      filters    : [{
+        name: "会议内容", extensions: ['txt']
+      }]
+    }, (filename) => {
+      if (filename) {
+        global.recentlyUsedPath = path.dirname(filename)
+        fs.writeFile(filename,
+          text,
+          (err) => {
+            if (err) {
+              console.error(err);
+              e.sender.send(MEETING_SAVE_TEXT, 'error')
+            } else {
+              e.sender.send(MEETING_SAVE_TEXT, 'success')
             }
           })
       }

@@ -17,13 +17,24 @@ import {
   MEET_MEMBERS
 } from '../types';
 
+function sortResult(list) {
+  return list.sort((a, b) => {
+    if (a.number === b.number) {
+      return a.channel - b.channel
+    } else {
+      return a.number - b.number
+    }
+  })
+}
+
 const _state = {
   isRecord   : false,
   isEnd      : false,
   meetingName: '',
   startTime  : '',
   timer      : 0,
-  resultList : [{text: 'hello', oText: '你好'}],
+  resultList : [],
+  channels   : [],
   members    : []
 }
 let _timer;
@@ -100,14 +111,21 @@ export default {
     [MEET_MEMBERS](state, members) {
       state.members = members
     },
-    [MEET_ADD_RESULT]({resultList}, res) {
+    [MEET_ADD_RESULT]({resultList, channels = {}}, res) {
       res.hasMod = false
       res.oText  = res.text
+      res.url = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/ff1dc4ef-69f1-47ca-9b8b-616ece4c3b58/1499146166464451842/sh`
       resultList.push(res)
-      resultList.sort((a, b) => a.number - b.number)
+      if (channels[res.channel]) {
+        channels[res.channel].push(res)
+      } else {
+        channels[res.channel] = [res]
+      }
+      sortResult(resultList)
     },
-    [MEET_END_RESULT]({resultList}, payload) {
+    [MEET_END_RESULT](state, payload) {
       if (payload && payload.all) {
+        let resultList = state.channels[payload.channel] || (state.channels[payload.channel] = [])
         payload.all.forEach((res, i) => {
           let ret = resultList[i]
           if (ret) {
@@ -123,8 +141,15 @@ export default {
             resultList[i] = res
           }
         })
+        let list = []
+        state.channels.forEach(r => {
+          if (r) {
+            list.push.apply(list, r)
+          }
+        })
+        sortResult(list);
+        state.resultList = list;
       }
-      resultList.sort((a, b) => a.number - b.number)
     },
     [MEET_MOD_RESULT](_, payload) {
       payload.target.hasMod = true

@@ -25,28 +25,31 @@
       <el-table :data="list" border height="100%">
         <el-table-column :filter-method="time" width="120" align="center" prop="time" label="音频时长">
           <template scope="scope">
-            {{((scope.row.endTime - scope.row.startTime) / 1000) >> 0 | time(2)}}
+            {{(((scope.row.endTime - scope.row.startTime) / 1000) >> 0) | time(2)}}
           </template>
         </el-table-column>
         <el-table-column prop="text" align="center" label="识别文本">
           <template scope="scope">
-            <el-popover
-              title="识别结果:"
-              trigger="hover"
-              :content="scope.row.oText">
-              <div slot="reference"
-                   class="read-write-plaintext-only"
-                   @focus="beforeEdit($event, scope.row)"
-                   @keyup="change($event, scope.row)"
-                   contenteditable="true">
-                {{scope.row.text}}
-              </div>
-            </el-popover>
+            <!--<el-popover-->
+            <!--title="识别结果:"-->
+            <!--trigger="hover"-->
+            <!--:content="scope.row.oText">-->
+            <!---->
+            <!--</el-popover>-->
+            <div slot="reference"
+                 class="edit-area"
+                 @focus="beforeEdit($event, scope.row)"
+                 @keyup="change($event, scope.row)"
+                 contenteditable="true">
+              {{scope.row.text}}
+            </div>
           </template>
         </el-table-column>
         <el-table-column width="180" prop="voice" align="center" label="音频">
           <template scope="scope">
-
+            <voice
+              :url="scope.row.url"
+              :time="scope.row.endTime - scope.row.startTime"></voice>
           </template>
         </el-table-column>
       </el-table>
@@ -64,6 +67,7 @@
 <script type="text/ecmascript-6">
   import Vue from 'vue';
   import {mapActions, mapGetters} from 'vuex';
+  import voice from 'views/components/voice.vue';
   import EvalSDK from 'js/EvalSDK';
   import {
     MEET_IS_RECORD,
@@ -78,8 +82,8 @@
     MEET_MEMBERS
   } from 'store/types';
 
-  const {MEETING, MEETING_SAVE} = require('main/util/types')
-  const {ipcRenderer}           = require('electron')
+  const {MEETING, MEETING_SAVE, MEETING_SAVE_TEXT} = require('main/util/types')
+  const {ipcRenderer}                              = require('electron')
 
   export default {
     computed: {
@@ -117,29 +121,31 @@
         return !this.isRecord ? '开始录音' : '停止录音'
       }
     },
+    components:{
+      voice
+    },
     methods : {
       ...mapActions({
         update: MEET_MOD_RESULT,
         reset : MEET_RESET,
       }),
       beforeEdit(e, res) {
-        console.log(res.text)
-        e.target.innerHTML = res.text.replace('\r\n', '<br/>')
+        e.target.innerHTML = ''
+        e.target.innerText = res.text
       },
       change(e, target) {
         clearTimeout(this.cgTime)
         this.cgTime = setTimeout(() => {
-          let nodes = e.target.childNodes
-
           this.update({
             target,
-            text,
+            text: e.target.innerText,
           })
         }, 500)
       },
       record() {
         if (!this.isRecord) {
           this.$sdk.start()
+          this.reset()
           this.isRecord = true
           this.isEnd    = false
         } else {
@@ -152,7 +158,17 @@
         this.$sdk.saveMp3(this.meetingName)
       },
       saveMeetText() {
-        console.log(this.list.map(r => r.text).join(' '))
+        ipcRenderer.send(MEETING, {
+          type: MEETING_SAVE_TEXT,
+          data: this.list.map(r => r.text).join('\r\n'),
+          name: this.meetingName
+        })
+        ipcRenderer.once(MEETING_SAVE_TEXT, (e, msg) => {
+          this.$message({
+            type   : msg,
+            message: 'success' ? '保存成功!' : '保存失败!'
+          })
+        })
       },
       exportMeet() {
         let meeting = {
