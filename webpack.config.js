@@ -22,7 +22,6 @@ var isDev = process.env.NODE_ENV !== "production"
 
 var config     = {
   target      : "electron-renderer",
-  watch       : true,
   watchOptions: {
     ignored: [/node_modules/, /opus/, /dist/, /app/, 'src/resources/**/*'],
   },

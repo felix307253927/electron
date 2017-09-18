@@ -5,6 +5,7 @@
   "main": "./app/main/index.js",
   "scripts": {
     "compile": "webpack",
+    "watch": "webpack --watch",
     "start": "electron .",
     "opus": "gulp opus",
     "build": "electron-packager ./ --platform=win32 --arch=ia32 --out ./dist --version 1.0.0 --overwrite --icon=./src/resources/image/logo.png",
