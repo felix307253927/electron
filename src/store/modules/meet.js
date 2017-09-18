@@ -60,8 +60,8 @@ export default {
     [MEET_MOD_RESULT]({commit}, payload) {
       commit(MEET_MOD_RESULT, payload || {})
     },
-    [MEET_END_RESULT]({commit}, all) {
-      commit(MEET_END_RESULT, all || [])
+    [MEET_END_RESULT]({commit}, payload) {
+      commit(MEET_END_RESULT, payload)
     }
   },
   getters  : {
@@ -106,20 +106,24 @@ export default {
       resultList.push(res)
       resultList.sort((a, b) => a.number - b.number)
     },
-    [MEET_END_RESULT]({resultList}, all) {
-      all.forEach((res, i) => {
-        let ret = resultList[i]
-        if (ret && ret.hasMod) {
-          ret.oText = res.text
-        } else if (ret) {
-          res.hasMod = false
-          ret.oText  = ret.text = res.text
-        } else {
-          res.hasMod    = false
-          res.oText     = res.text
-          resultList[i] = res
-        }
-      })
+    [MEET_END_RESULT]({resultList}, payload) {
+      if (payload && payload.all) {
+        payload.all.forEach((res, i) => {
+          let ret = resultList[i]
+          if (ret) {
+            ret.channel = payload.channel
+            ret.oText   = res.text
+            if (!ret.hasMod) {
+              ret.text = res.text
+            }
+          } else {
+            res.hasMod    = false
+            res.oText     = res.text
+            res.channel   = payload.channel
+            resultList[i] = res
+          }
+        })
+      }
       resultList.sort((a, b) => a.number - b.number)
     },
     [MEET_MOD_RESULT](_, payload) {

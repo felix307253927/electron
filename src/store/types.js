@@ -4,7 +4,8 @@
  */
 'use strict';
 //head
-export const HEAD_TYPE = "HEAD_TYPE"
+export const HEAD_TYPE   = "HEAD_TYPE"
+export const HEAD_CONFIG = "HEAD_CONFIG"
 
 //meeting
 export const MEET_IS_RECORD   = "MEET_IS_RECORD"

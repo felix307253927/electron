@@ -7,15 +7,17 @@ const {Transform}            = require('stream')
 const {app, ipcMain, dialog} = require('electron')
 const fs                     = require('fs')
 const path                   = require('path')
-const {Encoder}              = require('lame')
+const {Encoder, Decoder}     = require('lame')
 const {
-        SAVE_RECORDER,
+        RECORDER_SAVE,
         RECORDER,
         RECORDER_RECEIVE,
         RECORDER_END,
         RECORDER_INIT,
         RECORDER_MAIN_ERR,
-        RECORDER_MAIN_READY
+        RECORDER_MAIN_READY,
+        TRANS_VOICE,
+        TRANS_PCM
       }                      = require('../util/types')
 
 class Pcm2Buf extends Transform {
@@ -24,10 +26,42 @@ class Pcm2Buf extends Transform {
   }
   
   _transform(chunk, enc, next) {
-    console.log(chunk.buffer)
     this.push(Buffer.from(chunk.buffer))
     next()
   }
+  
+  _flush(cb) {
+    cb()
+  }
+}
+
+class Mp32Pcm extends Transform {
+  constructor(opt) {
+    super(opt)
+    this.sender  = opt.sender
+    this.mp3name = opt.mp3name
+    this.on('finish', () => {
+      this.sender.send(TRANS_PCM, {
+        name : this.mp3name,
+        chunk: new Uint8Array(),
+        end  : true
+      })
+    })
+  }
+  
+  _transform(chunk, enc, next) {
+    this.push(chunk)
+    next()
+  }
+  
+  _write(chunk, encoding, callback) {
+    this.sender.send(TRANS_PCM, {
+      name: this.mp3name,
+      chunk
+    })
+    callback()
+  }
+  
 }
 
 function autoZero(num) {
@@ -67,10 +101,23 @@ class SaveVoice {
           this.write(data.buf, data.channel, (stream) => {
             stream.end()
           })
+          break;
+        case RECORDER_SAVE:
+          this.save(data.name)
       }
     })
-    ipcMain.on(SAVE_RECORDER, (e, name) => {
-      this.save(name)
+    ipcMain.on(TRANS_VOICE, (e, data) => {
+      if (data.data) {
+        data.data.forEach(p => {
+          fs.createReadStream(p)
+            .pipe(new Decoder())
+            .pipe(new Mp32Pcm({
+              sender : e.sender,
+              mp3name: path.basename(p)
+            }))
+          // .pipe(fs.createWriteStream('/home/felix/音乐/asr/test_201709111421_0_.pcm'))
+        })
+      }
     })
   }
   

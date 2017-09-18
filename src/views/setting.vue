@@ -28,6 +28,7 @@
 <script type="text/ecmascript-6">
   import {ipcRenderer, remote} from 'electron';
   import {CONFIG} from 'main/util/types';
+  import {HEAD_CONFIG} from 'store/types';
 
   export default {
     data() {
@@ -75,6 +76,7 @@
             config.port    = this.formData.port
             config.mp3host = this.formData.mp3host
             config.mp3port = this.formData.mp3port
+            this.$store.dispatch(HEAD_CONFIG, config)
           }
           this.$message({
             message: res === 'success' ? '保存成功!' : '保存失败!',

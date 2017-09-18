@@ -34,7 +34,13 @@
               title="识别结果:"
               trigger="hover"
               :content="scope.row.oText">
-              <div slot="reference" @input="change($event, scope.row)" contenteditable="true">{{scope.row.text}}</div>
+              <div slot="reference"
+                   class="read-write-plaintext-only"
+                   @focus="beforeEdit($event, scope.row)"
+                   @keyup="change($event, scope.row)"
+                   contenteditable="true">
+                {{scope.row.text}}
+              </div>
             </el-popover>
           </template>
         </el-table-column>
@@ -116,14 +122,20 @@
         update: MEET_MOD_RESULT,
         reset : MEET_RESET,
       }),
-      change(e, res) {
+      beforeEdit(e, res) {
+        console.log(res.text)
+        e.target.innerHTML = res.text.replace('\r\n', '<br/>')
+      },
+      change(e, target) {
         clearTimeout(this.cgTime)
         this.cgTime = setTimeout(() => {
+          let nodes = e.target.childNodes
+
           this.update({
-            target: res,
-            text  : e.target.textContent
+            target,
+            text,
           })
-        }, 1000)
+        }, 500)
       },
       record() {
         if (!this.isRecord) {

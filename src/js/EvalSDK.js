@@ -7,7 +7,7 @@
 const axios = require('axios')
 const uuid  = require('uuid/v4')
 import {
-  SAVE_RECORDER,
+  RECORDER_SAVE,
   RECORDER,
   RECORDER_RECEIVE,
   RECORDER_END,
@@ -80,8 +80,10 @@ function EvalSDK(config, store) {
   //保存MP3
   _this.saveMp3      = function (name) {
     if (_this.hasMp3()) {
-      console.log(name)
-      ipcRenderer.send(SAVE_RECORDER, name)
+      ipcRenderer.send(RECORDER, {
+        type: RECORDER_SAVE,
+        name
+      })
     }
   }
   _this.initRecorder = function () {
@@ -249,12 +251,15 @@ function EvalSDK(config, store) {
           "appkey"      : appkey
         }
       }).then(res => {
-        console.log(res)
         if (res.data && !res.data.errcode) {
           if (!end) {
+            res.data.currResult.channel = session.channel
             store.dispatch(MEET_ADD_RESULT, res.data.currResult)
           } else {
-            store.dispatch(MEET_END_RESULT, res.data.allResult)
+            store.dispatch(MEET_END_RESULT, {
+              channel: session.channel,
+              all    : res.data.allResult
+            })
           }
         }
       }).catch(err => {

@@ -32,8 +32,8 @@ class MainView {
     this.win.loadURL(`file://${path.join(__dirname, '../index.html')}`)
     this.win.on('close', (e) => {
       if (this.win.isVisible()) {
-        e.preventDefault()
-        this.win.hide()
+        // e.preventDefault()
+        // this.win.hide()
       }
     })
     new SaveVoice(this.win)

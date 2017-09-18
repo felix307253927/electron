@@ -14,19 +14,20 @@
 
 <script type="text/ecmascript-6">
   import {mapGetters, mapActions} from 'vuex';
-  import {HEAD_TYPE} from 'store/types';
+  import {HEAD_TYPE, HEAD_CONFIG} from 'store/types';
 
   export default {
-    data() {
-      return {
-        host: config.host.replace(/^https?:\/\//, ''),
-        port: config.port || (/^https/.test(config.host) ? 443 : 80)
-      }
-    },
     computed: {
       ...mapGetters({
-        type: HEAD_TYPE
-      })
+        type  : HEAD_TYPE,
+        config: HEAD_CONFIG
+      }),
+      host() {
+        return this.config.host.replace(/^https?:\/\//, '')
+      },
+      port() {
+        return this.config.port || (/^https/.test(this.config.host) ? 443 : 80)
+      }
     },
     methods : {
       ...mapActions({
