@@ -11,6 +11,45 @@
         <el-button type="primary" @click="transform()">{{transBtn}}</el-button>
       </el-col>
     </el-row>
+    <div class="body">
+      <el-table :data="list" border height="100%" :row-key="getRowKeys">
+        <el-table-column :filter-method="time" width="120" align="center" prop="time" label="音频时长">
+          <template scope="scope">
+            {{scope.row.mp3time | time(2)}}
+          </template>
+        </el-table-column>
+        <el-table-column prop="text" align="center" label="识别文本">
+          <template scope="scope">
+            <!--<el-popover-->
+            <!--title="识别结果:"-->
+            <!--trigger="hover"-->
+            <!--:content="scope.row.oText">-->
+            <!---->
+            <!--</el-popover>-->
+            <div slot="reference"
+                 class="edit-area"
+                 @focus="beforeEdit($event, scope.row)"
+                 @blur="afterEdit"
+                 @keyup="change($event, scope.row)"
+                 contenteditable="true">
+              {{scope.row.text}}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column width="180" prop="voice" align="center" label="音频">
+          <template scope="scope">
+            <voice
+              :url="scope.row.url"
+              :time="scope.row.mp3time"></voice>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <footer class="footer">
+      <el-button :disabled="!isEnd" @click="saveMp3()">导出原始录音</el-button>
+      <el-button :disabled="!isEnd" @click="saveMeetText">保存文本</el-button>
+      <el-button :disabled="!isEnd" @click="exportMeet">导出会议</el-button>
+    </footer>
   </div>
 </template>
 

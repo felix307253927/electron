@@ -10,7 +10,7 @@
         </el-row>
       </el-col>
       <el-col :span="5">
-        <el-button type="primary" @click="record()">{{recordBtn}}</el-button>
+        <el-button type="primary" :disabled="recordBtn=='启动录音'" @click="record()">{{recordBtn}}</el-button>
       </el-col>
       <el-col :span="5">
         <label>
@@ -22,10 +22,10 @@
       </el-col>
     </el-row>
     <div class="body">
-      <el-table :data="list" border height="100%">
+      <el-table :data="list" border height="100%" :row-key="getRowKeys">
         <el-table-column :filter-method="time" width="120" align="center" prop="time" label="音频时长">
           <template scope="scope">
-            {{(((scope.row.endTime - scope.row.startTime) / 1000) >> 0) | time(2)}}
+            {{scope.row.mp3time | time(2)}}
           </template>
         </el-table-column>
         <el-table-column prop="text" align="center" label="识别文本">
@@ -39,6 +39,7 @@
             <div slot="reference"
                  class="edit-area"
                  @focus="beforeEdit($event, scope.row)"
+                 @blur="afterEdit"
                  @keyup="change($event, scope.row)"
                  contenteditable="true">
               {{scope.row.text}}
@@ -49,17 +50,15 @@
           <template scope="scope">
             <voice
               :url="scope.row.url"
-              :time="scope.row.endTime - scope.row.startTime"></voice>
+              :time="scope.row.mp3time"></voice>
           </template>
         </el-table-column>
       </el-table>
     </div>
     <footer class="footer">
-      <div>
-        <el-button :disabled="!isEnd" @click="saveMp3()">导出原始录音</el-button>
-        <el-button :disabled="!isEnd" @click="saveMeetText">保存文本</el-button>
-        <el-button :disabled="!isEnd" @click="exportMeet">导出会议</el-button>
-      </div>
+      <el-button :disabled="!isEnd" @click="saveMp3()">导出原始录音</el-button>
+      <el-button :disabled="!isEnd" @click="saveMeetText">保存文本</el-button>
+      <el-button :disabled="!isEnd" @click="exportMeet">导出会议</el-button>
     </footer>
   </div>
 </template>
@@ -78,7 +77,6 @@
     MEET_ADD_RESULT,
     MEET_MOD_RESULT,
     MEET_RESULT,
-    MEET_RESET,
     MEET_MEMBERS
   } from 'store/types';
 
@@ -86,7 +84,7 @@
   const {ipcRenderer}                              = require('electron')
 
   export default {
-    computed: {
+    computed  : {
       ...mapGetters({
         startTime: MEET_START_TIME,
         timer    : MEET_TIMER,
@@ -118,20 +116,35 @@
         }
       },
       recordBtn() {
-        return !this.isRecord ? '开始录音' : '停止录音'
+        return this.isRecord === false ? '开始录音' : !this.isRecord ? '启动录音' : '停止录音'
       }
     },
-    components:{
+    watch     : {
+      list(n) {
+        if (!this._isEdit && n.length && this._scrollBox) {
+          this.$nextTick(() => {
+            this._scrollBox.scrollTop = this._scrollBox.scrollHeight
+          })
+        }
+      }
+    },
+    components: {
       voice
     },
-    methods : {
+    methods   : {
       ...mapActions({
         update: MEET_MOD_RESULT,
-        reset : MEET_RESET,
       }),
+      getRowKeys(row) {
+        return row.channel + '-' + row.number
+      },
       beforeEdit(e, res) {
+        this._isEdit       = true;
         e.target.innerHTML = ''
         e.target.innerText = res.text
+      },
+      afterEdit(e) {
+        this._isEdit = false;
       },
       change(e, target) {
         clearTimeout(this.cgTime)
@@ -145,9 +158,11 @@
       record() {
         if (!this.isRecord) {
           this.$sdk.start()
-          this.reset()
-          this.isRecord = true
-          this.isEnd    = false
+          this.isRecord = null
+          this.$sdk.once('start', () => {
+            this.isRecord = true
+          })
+          this.isEnd = false
         } else {
           this.$sdk.stop()
           this.isRecord = false
@@ -200,6 +215,7 @@
           this.$sdk.initRecorder()
         })
       }
+      this._scrollBox = document.querySelector('.meet .body .el-table .el-table__body-wrapper')
     }
   }
 </script>

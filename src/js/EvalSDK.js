@@ -4,8 +4,9 @@
  */
 'use strict';
 
-const axios = require('axios')
-const uuid  = require('uuid/v4')
+const axios       = require('axios')
+const CancelToken = axios.CancelToken
+const uuid        = require('uuid/v4')
 import {
   RECORDER_SAVE,
   RECORDER,
@@ -17,28 +18,25 @@ import {
 } from 'main/util/types';
 import {
   MEET_ADD_RESULT,
-  MEET_END_RESULT
+  MEET_END_RESULT,
+  MEET_RESET
 } from 'store/types';
 import {ipcRenderer} from 'electron';
 
-let host    = config.host
-let port    = config.port
-let mp3host = config.mp3host
-let mp3port = config.mp3port
-let appkey  = config.appkey
+let appkey = config.appkey
 
-function EvalSDK(config, store) {
+function EvalSDK(conf, store) {
   if (!(this instanceof EvalSDK)) {
-    return new EvalSDK(config, store)
+    return new EvalSDK(conf, store)
   }
-  config            = config || {}
-  config.sampleRate = config.sampleRate || 16000;
-  config.bitRate    = config.bitRate || 32;
-  this.channels     = config.channels || 1;
-  this.$store       = store
-  var _this         = this
-  var hasBuf        = false
-  var _events       = {}
+  conf            = conf || {}
+  conf.sampleRate = conf.sampleRate || 16000;
+  conf.bitRate    = conf.bitRate || 32;
+  this.channels   = conf.channels || 1;
+  this.$store     = store
+  var _this       = this
+  var hasBuf      = false
+  var _events     = {}
   
   //判断是否有MP3
   this.hasMp3 = function () {
@@ -46,21 +44,34 @@ function EvalSDK(config, store) {
   }
   
   this.emit = function (event, args) {
-    event = _events[event]
-    if (event) {
-      event.forEach(hd => {
+    var _event = _events[event]
+    if (_event) {
+      for (var i = 0, len = _event.length; i < len; i++) {
+        var hd = _event[i];
         hd(args)
-      })
+        if (hd._destroy) {
+          len--
+          _event.splice(i--, 1)
+          if (!_event.length) {
+            delete _events[event]
+          }
+        }
+      }
     }
   }
   
-  this.on = function (event, handle) {
-    event = _events[event]
-    if (event) {
-      event.push(handle)
+  this.on = function (event, handle, destroy) {
+    var _event      = _events[event]
+    handle._destroy = destroy
+    if (_event) {
+      _event.push(handle)
     } else {
       _events[event] = [handle]
     }
+  }
+  
+  this.once = function (event, handle) {
+    this.on(event, handle, true)
   }
   
   this.removeListener = function (event, handle) {
@@ -116,6 +127,10 @@ function EvalSDK(config, store) {
         ipcRenderer.on(RECORDER_MAIN_READY, () => {
           mic.connect(processor);
           processor.connect(context.destination)
+          sessions.forEach(s => {
+            s._cancel && s._cancel('cancel')
+          })
+          store.dispatch(MEET_RESET)
           sessions = []
           for (let i = 0; i < _this.channels; i++) {
             sessions[i] = {
@@ -152,29 +167,36 @@ function EvalSDK(config, store) {
         }
         
         let _mp3IsReady = [], _init = []
+        let flush       = (buf, i) => {
+          let session = sessions[i]
+          _this.asr(session, buf).then(data => {
+            if (data) {
+              data.currResult.channel = session.channel
+              store.dispatch(MEET_ADD_RESULT, data.currResult)
+            }
+          })
+          ipcRenderer.send(RECORDER, {type: RECORDER_RECEIVE, channel: i, buf})
+        }
         for (let i = 0; i < _this.channels; i++) {
-          var pcmWorker       = new Worker('./js/opus_encoder.js')
+          let pcmWorker       = new Worker('./js/opus_encoder.js')
           pcmWorkers[i]       = pcmWorker
           pcmWorker.onmessage = function (e) {
             switch (e.data.cmd) {
               case 'flush':
-                _this.asr(sessions[i], e.data.buf).then(data => {
-                  if (data) {
-                    data.currResult.channel = sessions[i].channel
-                    store.dispatch(MEET_ADD_RESULT, data.currResult)
-                  }
-                })
-                ipcRenderer.send(RECORDER, {type: RECORDER_RECEIVE, channel: i, buf: e.data.buf})
+                flush(e.data.buf, i)
                 break;
               case 'end':
-                _this.asr(sessions[i], e.data.buf, true).then(data => {
-                  if (data) {
-                    store.dispatch(MEET_END_RESULT, {
-                      channel: sessions[i].channel,
-                      all    : data.allResult
-                    })
-                  }
-                })
+                flush(e.data.buf, i)
+                setTimeout(() => {
+                  _this.asr(sessions[i], [], true).then(data => {
+                    if (data) {
+                      store.dispatch(MEET_END_RESULT, {
+                        channel: sessions[i].channel,
+                        all    : data.allResult
+                      })
+                    }
+                  })
+                }, 300)
                 ipcRenderer.send(RECORDER, {type: RECORDER_END, channel: i, buf: e.data.buf})
                 hasBuf = true
                 _mp3IsReady.push(i)
@@ -196,8 +218,8 @@ function EvalSDK(config, store) {
           pcmWorker.postMessage({
             cmd   : 'init',
             config: {
-              sampleRate      : config.sampleRate,
-              bitRate         : config.bitRate,
+              sampleRate      : conf.sampleRate,
+              bitRate         : conf.bitRate,
               originSampleRate: context.sampleRate,
               flush           : true,
               usePcm          : true
@@ -246,30 +268,34 @@ function EvalSDK(config, store) {
    * @param end      是否结束
    */
   _this.asr = function (session, buf, end) {
-    let body = null
-    if (!end) {
-      body = new FormData()
-      body.append('voice', new Blob(buf))
-      _this.asr.tryTimes = 0
-    } else {
-      session.end = session.num
-    }
-    let ajax = axios.post(`${host}:${port}/asr/pcm`, body, {
+    let body = null, cfg = {
       headers: {
         "X-EngineType": "asr.en_US",
         "X-Number"    : !end ? session.num : session.num + '$',
         "session-id"  : session.sid,
         "appkey"      : appkey
       }
-    }).then(res => {
+    }
+    if (!end) {
+      body = new FormData()
+      body.append('voice', new Blob(buf))
+      session.tryTimes = 0
+      session._cancel  = null
+    } else {
+      session.end     = session.num
+      cfg.cancelToken = new CancelToken((cancel) => {
+        session._cancel = cancel
+      })
+    }
+    let ajax = axios.post(`${config.host}:${config.port}/asr/pcm`, body, cfg).then(res => {
       if (res.data && !res.data.errcode) {
         return res.data
       }
     }).catch(err => {
       console.error(err)
-      if (end) {
-        if (++_this.asr.tryTimes < 3) {
-          console.log(`第${_this.asr.tryTimes}重试...`)
+      if (end && err.message !== 'cancel') {
+        if (++session.tryTimes < 3) {
+          console.log(`第${session.tryTimes}重试...`)
           _this.asr(session, buf, end)
         } else {
           _this.emit('error', '识别失败!')

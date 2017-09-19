@@ -1,10 +1,10 @@
 <template>
   <div class="voice">
     <!--<span>{{time}}</span>-->
-    <span>{{playTime === '00:00' ? time : playTime}}</span>
-    <span v-if="url" @click="play()" class="am-fr  mouse-pointer">
+    <span>{{playTime}}</span>&emsp;
+    <el-button size="mini" v-if="url" @click="play()" class="am-fr  mouse-pointer">
       {{!isPlaying ? '播放' : '停止'}}
-    </span>
+    </el-button>
   </div>
 </template>
 
@@ -15,17 +15,10 @@
       url : String
     },
     data() {
+      this._time = this.format(this.time);
       return {
-        playTime : this.time,
+        playTime : this._time,
         isPlaying: false
-      }
-    },
-    watch  : {
-      time(n) {
-        this.playTime = n;
-        if (this.isPlaying) {
-          this.stop();
-        }
       }
     },
     methods: {
@@ -63,7 +56,7 @@
       },
       stop() {
         this.isPlaying = false;
-        this.playTime  = this.time;
+        this.playTime  = this._time;
         let audio      = document.getElementById('voice-component-player');
         try {
           audio.pause();

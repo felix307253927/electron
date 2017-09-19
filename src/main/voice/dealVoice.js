@@ -161,6 +161,7 @@ class SaveVoice {
       stream.once('drain', () => {
         this.write([], channel)
       })
+      return
     }
     cb && cb(stream)
   }

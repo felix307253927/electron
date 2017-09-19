@@ -33,14 +33,16 @@ const _state = {
   meetingName: '',
   startTime  : '',
   timer      : 0,
-  resultList : [],
-  channels   : [],
-  members    : []
 }
 let _timer;
 
 export default {
-  state    : {..._state},
+  state    : {
+    ..._state,
+    resultList: [],
+    channels  : [],
+    members   : []
+  },
   actions  : {
     [MEET_IS_RECORD]({commit, state}, isRecord) {
       commit(MEET_IS_RECORD, isRecord)
@@ -97,7 +99,12 @@ export default {
       }
     },
     [MEET_RESET](state) {
-      Object.assign(state, _state, {meetingName: state.meetingName})
+      Object.assign(state, _state, {
+        meetingName: state.meetingName,
+        resultList : [],
+        channels   : [],
+        members    : []
+      })
     },
     [MEET_NAME](state, name) {
       state.meetingName = name
@@ -112,12 +119,17 @@ export default {
       state.members = members
     },
     [MEET_ADD_RESULT]({resultList, channels = {}}, res) {
-      res.hasMod = false
-      res.oText  = res.text
-      res.url = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/ff1dc4ef-69f1-47ca-9b8b-616ece4c3b58/1499146166464451842/sh`
-      resultList.push(res)
-      if (channels[res.channel]) {
-        channels[res.channel].push(res)
+      res.hasMod  = false
+      res.oText   = res.text
+      res.url     = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/${res.sid}/${res.time}/${res.area}`
+      res.mp3time = Math.round((res.endTime - res.startTime) / 1000)
+      let ch;
+      if (ch = channels[res.channel]) {
+        // 去重
+        if (!ch[res.number] || ch[res.number].number !== res.number) {
+          resultList.push(res)
+          ch.push(res)
+        }
       } else {
         channels[res.channel] = [res]
       }
@@ -138,6 +150,8 @@ export default {
             res.hasMod    = false
             res.oText     = res.text
             res.channel   = payload.channel
+            res.url       = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/${res.sid}/${res.time}/${res.area}`
+            res.mp3time   = Math.round((res.endTime - res.startTime) / 1000)
             resultList[i] = res
           }
         })
@@ -151,9 +165,9 @@ export default {
         state.resultList = list;
       }
     },
-    [MEET_MOD_RESULT](_, payload) {
-      payload.target.hasMod = true
-      payload.target.text   = payload.text
+    [MEET_MOD_RESULT](_, {target, text}) {
+      target.hasMod = true
+      target.text   = text
     }
   }
 }
