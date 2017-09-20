@@ -11,7 +11,8 @@
     "build": "electron-packager ./ --platform=win32 --arch=ia32 --out ./dist --version 1.0.0 --overwrite --icon=./src/resources/image/logo.png",
     "test": "echo \"Error: no test specified\" && exit 1",
     "pack": "build --win --ia32 --dir",
-    "win": "build --win --ia32",
+    "win": "build --win --ia32 --publish=never",
+    "win32": "build --win --ia32",
     "win64": "build --win --x64",
     "dist": "build",
     "electron-rebuild": "electron-rebuild"
