@@ -171,6 +171,9 @@ function EvalSDK(conf, store) {
             if (data) {
               data.currResult.channel = session.channel
               store.dispatch(MEET_ADD_RESULT, data.currResult)
+              new Notification(data.currResult.text, {
+                body: `number:${data.currResult.number}\r\nsid:${data.currResult.sid}\r\ntime:${data.currResult.time}`
+              })
             }
           })
           ipcRenderer.send(RECORDER, {type: RECORDER_RECEIVE, channel: i, buf})

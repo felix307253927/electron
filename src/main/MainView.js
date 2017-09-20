@@ -3,10 +3,10 @@
  * @email   307253927@qq.com
  */
 'use strict';
-const {BrowserWindow, ipcMain} = require('electron')
-const path                     = require('path')
-const SaveVoice                = require('./voice/dealVoice')
-const Meeting                  = require('./meet/meeting')
+const {BrowserWindow, app} = require('electron')
+const path                 = require('path')
+const SaveVoice            = require('./voice/dealVoice')
+const Meeting              = require('./meet/meeting')
 
 class MainView {
   constructor() {
@@ -20,6 +20,7 @@ class MainView {
       center        : true,
       resizable     : true,
       title         : config.name,
+      show          : false,
       icon          : path.join(__dirname, '../resources/icon/icon.png'),
       webPreferences: {
         javascript     : true,
@@ -32,8 +33,9 @@ class MainView {
     this.win.loadURL(`file://${path.join(__dirname, '../index.html')}`)
     this.win.on('close', (e) => {
       if (this.win.isVisible()) {
-        // e.preventDefault()
-        // this.win.hide()
+        e.preventDefault()
+        this.hide()
+        app.exit(0)
       }
     })
     new SaveVoice(this.win)

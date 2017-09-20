@@ -3,7 +3,7 @@
  * @email   307253927@qq.com
  */
 'use strict';
-
+import {ipcRenderer} from 'electron';
 import Vue from 'vue';
 import Head from 'views/components/head.vue';
 import store from 'store/store';
@@ -12,6 +12,13 @@ import {HEAD_TYPE} from 'store/types';
 import 'js/filter';
 import 'scss/style.scss'
 
+function useNativeNotification() {
+  if (Notification.permission !== "denied") {
+    Notification.requestPermission(function (permission) {
+      console.log('Notification permission is', permission)
+    });
+  }
+}
 
 //初始化 vuex 路由信息
 router.onReady((r) => {
@@ -37,6 +44,8 @@ new Vue({
     Head
   },
   mounted() {
+    ipcRenderer.send('app-render')
+    useNativeNotification()
   }
 })
 

@@ -4,10 +4,11 @@
  */
 'use strict';
 
-const {app, BrowserWindow} = require('electron')
-const MainView             = require('./MainView')
-const AppTray              = require('./AppTray')
-const Config               = require('./util/manageConfig')
+const {app, BrowserWindow, ipcMain} = require('electron')
+const MainView                      = require('./MainView')
+const AppTray                       = require('./AppTray')
+const Splash                        = require('./Splash')
+const Config                        = require('./util/manageConfig')
 
 global.recentlyUsedPath = app.getPath('documents')
 
@@ -25,9 +26,16 @@ class App {
       }
       let cf        = new Config()
       global.config = cf.info
-      this.main     = new MainView(this.main)
+      this.main     = new MainView()
+      this.splash   = new Splash(this.main)
       this.tray     = new AppTray(this.main)
       cf.register()
+      ipcMain.on('app-render', () => {
+        setTimeout(() => {
+          this.splash.hide()
+          this.main.show()
+        }, 1000)
+      })
     })
     
     app.on('activate', () => {
@@ -39,7 +47,7 @@ class App {
         this.main     = new MainView()
         this.tray     = new AppTray(this.main)
       }
-      this.main.show();
+      this.main.show()
     })
   }
 }

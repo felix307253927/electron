@@ -98,7 +98,7 @@ export default {
       Object.assign(state, _state, {
         meetingName: state.meetingName,
         resultList : [],
-        // channels   : [],
+        channels   : [],
         // members    : []
       })
     },
@@ -149,7 +149,7 @@ export default {
               ret.text = res.text
             }
           } else {
-            res.member = state.members[payload.channel]
+            res.member    = state.members[payload.channel]
             res.hasMod    = false
             res.oText     = res.text
             res.channel   = payload.channel
