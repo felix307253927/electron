@@ -1,9 +1,16 @@
 @charset "UTF-8";
 
 .meet {
-  .header{
+  .header {
     position: relative;
     z-index: 1;
+    .file-list {
+      padding-top: .8rem;
+      overflow-y: hidden;
+      overflow-x: auto;
+      white-space: nowrap;
+      max-height: 50px;
+    }
   }
   .body {
     position: absolute;
@@ -12,11 +19,16 @@
     top: 0;
     bottom: 0;
     padding: 115px 0 55px 0;
-    .el-table{
+    &.transfer {
+      padding-top: 140px;
+    }
+    .el-table {
       height: 100%;
     }
-    .edit-area{
+    .edit-area {
       text-align: left;
+      outline: none;
+      margin: 0;
     }
   }
   .footer {

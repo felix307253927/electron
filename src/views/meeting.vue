@@ -10,7 +10,7 @@
         </el-row>
       </el-col>
       <el-col :span="5">
-        <el-button type="primary" :disabled="recordBtn=='启动录音'" @click="record()">{{recordBtn}}</el-button>
+        <el-button type="primary" :disabled="isRecord===null||isRecord===0" @click="record()">{{recordBtn}}</el-button>
       </el-col>
       <el-col :span="5">
         <label>
@@ -22,7 +22,7 @@
       </el-col>
     </el-row>
     <div class="body">
-      <el-table :data="list" border height="100%" :row-key="getRowKeys">
+      <!--<el-table :data="list" border height="100%" :row-key="getRowKeys">
         <el-table-column :filter-method="time" width="120" align="center" prop="time" label="音频时长">
           <template scope="scope">
             {{scope.row.mp3time | time(2)}}
@@ -30,12 +30,12 @@
         </el-table-column>
         <el-table-column prop="text" align="center" label="识别文本">
           <template scope="scope">
-            <!--<el-popover-->
-            <!--title="识别结果:"-->
-            <!--trigger="hover"-->
-            <!--:content="scope.row.oText">-->
-            <!---->
-            <!--</el-popover>-->
+            &lt;!&ndash;<el-popover&ndash;&gt;
+            &lt;!&ndash;title="识别结果:"&ndash;&gt;
+            &lt;!&ndash;trigger="hover"&ndash;&gt;
+            &lt;!&ndash;:content="scope.row.oText">&ndash;&gt;
+            &lt;!&ndash;&ndash;&gt;
+            &lt;!&ndash;</el-popover>&ndash;&gt;
             <div slot="reference"
                  class="edit-area"
                  @focus="beforeEdit($event, scope.row)"
@@ -53,7 +53,8 @@
               :time="scope.row.mp3time"></voice>
           </template>
         </el-table-column>
-      </el-table>
+      </el-table>-->
+      <recognition :show-channel="true" :data="list" @edit="change"></recognition>
     </div>
     <footer class="footer">
       <el-button :disabled="!isEnd" @click="saveMp3()">导出原始录音</el-button>
@@ -66,9 +67,10 @@
 <script type="text/ecmascript-6">
   import Vue from 'vue';
   import {mapActions, mapGetters} from 'vuex';
-  import voice from 'views/components/voice.vue';
+  import recognition from 'views/components/recognition.vue';
   import EvalSDK from 'js/EvalSDK';
   import {
+    MEET_ID,
     MEET_IS_RECORD,
     MEET_IS_END,
     MEET_NAME,
@@ -77,7 +79,8 @@
     MEET_ADD_RESULT,
     MEET_MOD_RESULT,
     MEET_RESULT,
-    MEET_MEMBERS
+    MEET_MEMBERS,
+    MEET_RESET
   } from 'store/types';
 
   const {MEETING, MEETING_SAVE, MEETING_SAVE_TEXT} = require('main/util/types')
@@ -89,14 +92,15 @@
         startTime: MEET_START_TIME,
         timer    : MEET_TIMER,
         list     : MEET_RESULT,
-        members  : MEET_MEMBERS
+        members  : MEET_MEMBERS,
+        sid      : MEET_ID
       }),
       meetingName: {
         get() {
           return this.$store.state.meet.meetingName
         },
         set(value) {
-          this.$store.commit(MEET_NAME, value)
+          this.$store.dispatch(MEET_NAME, value)
         }
       },
       isRecord   : {
@@ -116,47 +120,42 @@
         }
       },
       recordBtn() {
-        return this.isRecord === false ? '开始录音' : !this.isRecord ? '启动录音' : '停止录音'
-      }
-    },
-    watch     : {
-      list(n) {
-        if (!this._isEdit && n.length && this._scrollBox) {
-          this.$nextTick(() => {
-            this._scrollBox.scrollTop = this._scrollBox.scrollHeight
-          })
+        switch (this.isRecord) {
+          case false:
+            return '开始录音'
+          case null:
+            return '启动录音'
+          case true:
+            return '停止录音'
+          case 0:
+            return '识别中..'
+          default:
+            return '开始录音'
         }
       }
     },
     components: {
-      voice
+      recognition
     },
     methods   : {
       ...mapActions({
-        update: MEET_MOD_RESULT,
+        add      : MEET_ADD_RESULT,
+        update   : MEET_MOD_RESULT,
+        resetMeet: MEET_RESET
       }),
-      getRowKeys(row) {
-        return row.channel + '-' + row.number
-      },
-      beforeEdit(e, res) {
-        this._isEdit       = true;
-        e.target.innerHTML = ''
-        e.target.innerText = res.text
-      },
-      afterEdit(e) {
-        this._isEdit = false;
-      },
-      change(e, target) {
+      change(text, target) {
         clearTimeout(this.cgTime)
         this.cgTime = setTimeout(() => {
           this.update({
             target,
-            text: e.target.innerText,
+            text
           })
         }, 500)
       },
       record() {
-        if (!this.isRecord) {
+        if (this.isRecord === false) {
+          this.isEnd && this.resetMeet()
+          this.add(null)
           this.$sdk.start()
           this.isRecord = null
           this.$sdk.once('start', () => {
@@ -165,7 +164,7 @@
           this.isEnd = false
         } else {
           this.$sdk.stop()
-          this.isRecord = false
+          this.isRecord = 0
           this.isEnd    = true
         }
       },
@@ -207,15 +206,15 @@
     },
     mounted() {
       //加载SDK
-      if (!this.$sdk || this.$sdk.channels !== this.members.length) {
+      if (!this.$sdk || this.$sdk.__sid !== this.sid) {
         Vue.use((Vue) => {
           Vue.prototype.$sdk = new EvalSDK({
             channels: this.members.length || 1
           }, this.$store)
+          this.$sdk.__sid    = this.sid
           this.$sdk.initRecorder()
         })
       }
-      this._scrollBox = document.querySelector('.meet .body .el-table .el-table__body-wrapper')
     }
   }
 </script>

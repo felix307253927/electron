@@ -4,10 +4,10 @@
  */
 'use strict';
 
-const {app}    = require('electron')
-const MainView = require('./MainView')
-const AppTray  = require('./AppTray')
-const Config   = require('./util/manageConfig')
+const {app, BrowserWindow} = require('electron')
+const MainView             = require('./MainView')
+const AppTray              = require('./AppTray')
+const Config               = require('./util/manageConfig')
 
 global.recentlyUsedPath = app.getPath('documents')
 
@@ -18,6 +18,11 @@ class App {
   
   initApp() {
     app.on('ready', () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('addDevToolsExtension...')
+        BrowserWindow.addDevToolsExtension("/home/felix/.config/chromium/Default/Extensions/nhdogjmejiglipccpnnnanhbledajbpd/3.1.6_0");
+        console.log(BrowserWindow.getDevToolsExtensions())
+      }
       let cf        = new Config()
       global.config = cf.info
       this.main     = new MainView(this.main)

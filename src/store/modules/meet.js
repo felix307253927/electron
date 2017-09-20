@@ -3,7 +3,9 @@
  * @email   307253927@qq.com
  */
 'use strict';
+import Vue from 'vue';
 import {
+  MEET_ID,
   MEET_IS_RECORD,
   MEET_IS_END,
   MEET_RESET,
@@ -16,16 +18,8 @@ import {
   MEET_END_RESULT,
   MEET_MEMBERS
 } from '../types';
-
-function sortResult(list) {
-  return list.sort((a, b) => {
-    if (a.number === b.number) {
-      return a.channel - b.channel
-    } else {
-      return a.number - b.number
-    }
-  })
-}
+import uuid from 'uuid/v4';
+import {sortResult} from 'js/utils';
 
 const _state = {
   isRecord   : false,
@@ -38,6 +32,7 @@ let _timer;
 
 export default {
   state    : {
+    sid       : uuid(),
     ..._state,
     resultList: [],
     channels  : [],
@@ -68,7 +63,7 @@ export default {
       commit(MEET_MEMBERS, members)
     },
     [MEET_ADD_RESULT]({commit}, res) {
-      commit(MEET_ADD_RESULT, res || {})
+      commit(MEET_ADD_RESULT, res)
     },
     [MEET_MOD_RESULT]({commit}, payload) {
       commit(MEET_MOD_RESULT, payload || {})
@@ -78,6 +73,7 @@ export default {
     }
   },
   getters  : {
+    [MEET_ID]        : state => state.sid,
     [MEET_IS_RECORD] : state => state.isRecord,
     [MEET_IS_END]    : state => state.isEnd,
     [MEET_NAME]      : state => state.meetingName,
@@ -102,8 +98,8 @@ export default {
       Object.assign(state, _state, {
         meetingName: state.meetingName,
         resultList : [],
-        channels   : [],
-        members    : []
+        // channels   : [],
+        // members    : []
       })
     },
     [MEET_NAME](state, name) {
@@ -118,22 +114,28 @@ export default {
     [MEET_MEMBERS](state, members) {
       state.members = members
     },
-    [MEET_ADD_RESULT]({resultList, channels = {}}, res) {
-      res.hasMod  = false
-      res.oText   = res.text
-      res.url     = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/${res.sid}/${res.time}/${res.area}`
-      res.mp3time = Math.round((res.endTime - res.startTime) / 1000)
-      let ch;
-      if (ch = channels[res.channel]) {
-        // 去重
-        if (!ch[res.number] || ch[res.number].number !== res.number) {
+    [MEET_ADD_RESULT]({resultList, channels = {}, members}, res) {
+      if (res) {
+        res.member  = members[res.channel]
+        res.hasMod  = false
+        res.oText   = res.text
+        res.url     = `${config.mp3host}:${config.mp3port}/WebAudio-1.0-SNAPSHOT/audio/play/${res.sid}/${res.time}/${res.area}`
+        res.mp3time = Math.round((res.endTime - res.startTime) / 1000)
+        let ch;
+        if (ch = channels[res.channel]) {
+          // 去重
+          if (!ch[res.number] || ch[res.number].number !== res.number) {
+            resultList.push(res)
+            ch.push(res)
+          }
+        } else {
+          channels[res.channel] = [res]
           resultList.push(res)
-          ch.push(res)
         }
+        sortResult(resultList)
       } else {
-        channels[res.channel] = [res]
+        Vue.set(resultList, 'asr', true)
       }
-      sortResult(resultList)
     },
     [MEET_END_RESULT](state, payload) {
       if (payload && payload.all) {
@@ -147,6 +149,7 @@ export default {
               ret.text = res.text
             }
           } else {
+            res.member = state.members[payload.channel]
             res.hasMod    = false
             res.oText     = res.text
             res.channel   = payload.channel
@@ -164,6 +167,8 @@ export default {
         sortResult(list);
         state.resultList = list;
       }
+      state.isRecord = false;
+      Vue.set(state.resultList, 'asr', false)
     },
     [MEET_MOD_RESULT](_, {target, text}) {
       target.hasMod = true

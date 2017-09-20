@@ -18,8 +18,7 @@ function resolveApp(relativePath) {
   return path.resolve(appDirectory, relativePath);
 }
 
-var isDev = process.env.NODE_ENV !== "production"
-
+console.log(process.env.NODE_ENV)
 var config     = {
   target      : "electron-renderer",
   watchOptions: {
@@ -97,7 +96,7 @@ var config     = {
     }),
     new DefinePlugin({
       'process.env': {
-        URL: JSON.stringify(isDev ? 'localhost:19985' : '')
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
       }
     }),
     new CopyWebpackPlugin([

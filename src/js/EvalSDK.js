@@ -19,7 +19,6 @@ import {
 import {
   MEET_ADD_RESULT,
   MEET_END_RESULT,
-  MEET_RESET
 } from 'store/types';
 import {ipcRenderer} from 'electron';
 
@@ -115,10 +114,9 @@ function EvalSDK(conf, store) {
         
         processor.onaudioprocess = function (event) {
           //监听音频录制过程
-          for (var i = 0; i < _this.channels; i++) {
+          for (let i = 0; i < _this.channels; i++) {
             if (pcmWorkers[i]) {
-              var data = event.inputBuffer.getChannelData(i)
-              pcmWorkers[i].postMessage({cmd: 'encode', pcm: data})
+              pcmWorkers[i].postMessage({cmd: 'encode', pcm: event.inputBuffer.getChannelData(i)})
             }
           }
         }
@@ -128,9 +126,9 @@ function EvalSDK(conf, store) {
           mic.connect(processor);
           processor.connect(context.destination)
           sessions.forEach(s => {
+            s.endTimer && clearTimeout(s.endTimer)
             s._cancel && s._cancel('cancel')
           })
-          store.dispatch(MEET_RESET)
           sessions = []
           for (let i = 0; i < _this.channels; i++) {
             sessions[i] = {
@@ -187,14 +185,12 @@ function EvalSDK(conf, store) {
                 break;
               case 'end':
                 flush(e.data.buf, i)
-                setTimeout(() => {
+                sessions[i].endTimer = setTimeout(() => {
                   _this.asr(sessions[i], [], true).then(data => {
-                    if (data) {
-                      store.dispatch(MEET_END_RESULT, {
-                        channel: sessions[i].channel,
-                        all    : data.allResult
-                      })
-                    }
+                    store.dispatch(MEET_END_RESULT, {
+                      channel: sessions[i].channel,
+                      all    : data ? data.allResult : null
+                    })
                   })
                 }, 300)
                 ipcRenderer.send(RECORDER, {type: RECORDER_END, channel: i, buf: e.data.buf})
