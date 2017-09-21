@@ -92,6 +92,8 @@ export default {
     [MEET_IS_END](state, end) {
       if (state.isEnd = end) {
         clearInterval(_timer)
+        state.isRecord = false;
+        Vue.set(state.resultList, 'asr', false)
       }
     },
     [MEET_RESET](state) {

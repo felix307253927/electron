@@ -83,8 +83,10 @@ class SaveVoice {
     for (let i = 0; i < channels; i++) {
       let stream = fs.createWriteStream(path.join(app.getPath('temp'), `temp_${i}.pcm`))
       stream.on('error', (err) => {
-        console.log(err)
         e.sender.send(RECORDER_MAIN_ERR, err)
+      })
+      stream.on('finish', () => {
+        stream.isEnd = true
       })
       this.streams[i] = {stream, buf: []}
     }
@@ -154,18 +156,20 @@ class SaveVoice {
   
   write(arr, channel, cb) {
     let {stream, buf} = this.streams[channel]
-    buf.push.apply(buf, arr)
-    arr     = buf
-    let len = arr.length, ok = true, i = 0
-    while (ok && i < len) {
-      ok = stream.write(arr.shift())
-      i++
-    }
-    if (!ok && i < len) {
-      stream.once('drain', () => {
-        this.write([], channel)
-      })
-      return
+    if (!stream.isEnd) {
+      buf.push.apply(buf, arr)
+      arr     = buf
+      let len = arr.length, ok = true, i = 0
+      while (ok && i < len) {
+        ok = stream.write(arr.shift())
+        i++
+      }
+      if (!ok && i < len) {
+        stream.once('drain', () => {
+          this.write([], channel)
+        })
+        return
+      }
     }
     cb && cb(stream)
   }

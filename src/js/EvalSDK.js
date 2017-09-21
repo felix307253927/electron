@@ -20,6 +20,7 @@ import {
   MEET_ADD_RESULT,
   MEET_END_RESULT,
 } from 'store/types';
+import err from 'js/errmsg';
 import {ipcRenderer} from 'electron';
 
 let appkey = config.appkey
@@ -140,8 +141,8 @@ function EvalSDK(conf, store) {
           }
           _this.emit('start')
         })
-        ipcRenderer.on(RECORDER_MAIN_ERR, (e, err) => {
-          _this.emit('error', err)
+        ipcRenderer.on(RECORDER_MAIN_ERR, (e, error) => {
+          _this.emit('error', err.MIC_START_ERROR)
         })
         //开始录音
         _this.start = function () {
@@ -151,13 +152,15 @@ function EvalSDK(conf, store) {
           }
         }
         //结束录音
-        _this.stop  = function () {
+        _this.stop  = function (error) {
           if (processor && mic) {
             mic.disconnect();
             processor.disconnect();
-            for (let i = 0; i < _this.channels; i++) {
-              if (pcmWorkers[i]) {
-                pcmWorkers[i].postMessage({cmd: 'finish'})
+            if (!error) {
+              for (let i = 0; i < _this.channels; i++) {
+                if (pcmWorkers[i]) {
+                  pcmWorkers[i].postMessage({cmd: 'finish'})
+                }
               }
             }
           }
@@ -207,7 +210,8 @@ function EvalSDK(conf, store) {
                 }
                 break;
               case 'error':
-                _this.emit('error', {code: -1001, msg: e.data.buf})
+                console.error(e.data.buf)
+                _this.emit('error', err.ENCODE_ERROR)
                 break;
             }
           }
@@ -227,34 +231,29 @@ function EvalSDK(conf, store) {
         var msg;
         switch (error.code || error.name) {
           case 9:
-            msg = {
-              code: 1011,
-              msg : "无法打开麦克风,请使用https协议. Only secure origins are allowed (see: https://goo.gl/Y0ZkNV)."
-            };
+            msg = err.MIC_PROCTRL_ERROR;
             break;
           case 'PermissionDeniedError':
           case 'PERMISSION_DENIED':
           case 'NotAllowedError':
-            msg = {code: 1012, msg: "用户拒绝访问麦克风"};
-            break;
-          case 'NOT_SUPPORTED_ERROR':
-          case 'NotSupportedError':
-            msg = {code: 1013, msg: "浏览器不支持录音"};
+            msg = err.MIC_REFUSE;
             break;
           case 'MANDATORY_UNSATISFIED_ERROR':
           case 'MandatoryUnsatisfiedError':
-            msg = {code: 1014, msg: "找不到麦克风设备"};
+            msg = err.MIC_NO_DEVICE;
             break;
+          case 'NOT_SUPPORTED_ERROR':
+          case 'NotSupportedError':
           default:
-            msg = {code: 1015, msg: '无法打开麦克风 Error: ' + (error.code || error.name)};
+            msg = err.MIC_OPEN_ERROR
             break;
         }
         _this.emit('error', msg)
       })
   }
   
-  _this.on('error', function () {
-    _this.stop && _this.stop()
+  _this.on('error', function (error) {
+    _this.stop(error)
   })
   
   /**
@@ -287,14 +286,18 @@ function EvalSDK(conf, store) {
       if (res.data && !res.data.errcode) {
         return res.data
       }
-    }).catch(err => {
-      console.error(err)
-      if (end && err.message !== 'cancel') {
+    }).catch(error => {
+      console.error(error)
+      if (error.message === 'cancel') {
+        console.log('http is cancel')
+      } else if (!error.status || error.status === 500) {
+        _this.emit('error', err.SERVICE_CONNECT_ERROR)
+      } else if (end) {
         if (++session.tryTimes < 3) {
           console.log(`第${session.tryTimes}重试...`)
           _this.asr(session, buf, end)
         } else {
-          _this.emit('error', '识别失败!')
+          _this.emit('error', err.SERVICE_ASR_ERROR)
         }
       }
     })

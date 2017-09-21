@@ -22,9 +22,6 @@ class SplashWindow {
       titleBarStyle  : 'hidden',
     });
     this.splashWindow.loadURL('file://' + path.join(__dirname, '../splash.html'));
-    this.splashWindow.once('ready-to-show', () => {
-      this.show()
-    })
   }
   
   show() {

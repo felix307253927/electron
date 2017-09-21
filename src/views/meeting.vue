@@ -82,6 +82,7 @@
     MEET_MEMBERS,
     MEET_RESET
   } from 'store/types';
+  import ERRMSG from 'js/errmsg';
 
   const {MEETING, MEETING_SAVE, MEETING_SAVE_TEXT} = require('main/util/types')
   const {ipcRenderer}                              = require('electron')
@@ -202,6 +203,14 @@
             message: 'success' ? '导出成功!' : '导出失败!'
           })
         })
+      },
+      onConnectError() {
+        this.isRecord = 0
+        this.isEnd    = true
+        this.$message({
+          type   : 'error',
+          message: "服务器连接失败!"
+        })
       }
     },
     mounted() {
@@ -213,6 +222,11 @@
           }, this.$store)
           this.$sdk.__sid    = this.sid
           this.$sdk.initRecorder()
+          this.$sdk.on('error', err => {
+            if (err.code === ERRMSG.SERVICE_CONNECT_ERROR.code) {
+              this.onConnectError && this.onConnectError()
+            }
+          })
         })
       }
     }
