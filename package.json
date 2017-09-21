@@ -10,6 +10,7 @@
     "opus": "gulp opus",
     "build": "electron-packager ./ --platform=win32 --arch=ia32 --out ./dist --version 1.0.0 --overwrite --icon=./src/resources/image/logo.png",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "debug": "electron --debug-brk=43100 --expose_debug_as=v8debug . --remote-debugging-port=5858",
     "pack": "build --win --ia32 --dir",
     "win": "build --win --ia32 --publish=never",
     "win32": "build --win --ia32",

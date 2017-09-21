@@ -1,5 +1,6 @@
 <template>
-  <el-table :data="data" border height="100%" :empty-text="!data.asr?'暂无数据':'识别中...'" :row-key="getRowKeys">
+  <el-table :data="data" border height="100%" :empty-text="!data.asr?'暂无数据':'识别中...'" :row-key="getRowKeys"
+            :row-class-name="rowClass">
     <el-table-column v-if="showChannel" :filter-method="time" width="100" align="center" prop="channel" label="演讲人">
       <template scope="scope">
         {{scope.row.member || scope.row.channel}}
@@ -60,6 +61,9 @@
     methods   : {
       getRowKeys(row) {
         return row.channel + '-' + row.number
+      },
+      rowClass(row) {
+        return row.text === row.oText ? '' : 'edited'
       },
       beforeEdit(e, res) {
         e.target.innerHTML = ''

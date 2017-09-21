@@ -186,18 +186,16 @@
             }
           })
         } else {
-          setTimeout(() => {
-            this.$trans_sdk.asr(session, [chunk], end).then(data => {
-              this.end({
-                channel: session.channel,
-                all    : data ? data.allResult : null
-              })
-              this.setState(2);
-            }).catch(() => {
-              this.setState(0);
-              Vue.set(this.showData, 'asr', false)
+          this.$trans_sdk.asr(session, [chunk], end).then(data => {
+            this.end({
+              channel: session.channel,
+              all    : data ? data.allResult : null
             })
-          }, 300)
+            this.setState(2);
+          }).catch(() => {
+            this.setState(0);
+            Vue.set(this.showData, 'asr', false)
+          })
         }
       })
     }

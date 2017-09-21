@@ -30,7 +30,7 @@ class App {
       this.splash   = new Splash(this.main)
       this.tray     = new AppTray(this.main)
       cf.register()
-      ipcMain.on('app-render', () => {
+      ipcMain.once('app-render', () => {
         setTimeout(() => {
           this.splash.hide()
           this.main.show()

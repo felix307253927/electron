@@ -41,11 +41,13 @@ class Mp32Pcm extends Transform {
     this.sender  = opt.sender
     this.mp3name = opt.mp3name
     this.on('finish', () => {
-      this.sender.send(TRANS_PCM, {
-        name : this.mp3name,
-        chunk: new Uint8Array(),
-        end  : true
-      })
+      setTimeout(() => {
+        this.sender.send(TRANS_PCM, {
+          name : this.mp3name,
+          chunk: new Uint8Array(),
+          end  : true
+        })
+      }, 300)
     })
   }
   
@@ -55,11 +57,13 @@ class Mp32Pcm extends Transform {
   }
   
   _write(chunk, encoding, callback) {
-    this.sender.send(TRANS_PCM, {
-      name: this.mp3name,
-      chunk
-    })
-    callback()
+    setTimeout(() => {
+      this.sender.send(TRANS_PCM, {
+        name: this.mp3name,
+        chunk
+      })
+      callback()
+    }, chunk.length / 128)
   }
   
 }

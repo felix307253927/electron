@@ -45,7 +45,7 @@ new Vue({
   },
   mounted() {
     ipcRenderer.send('app-render')
-    useNativeNotification()
+    // useNativeNotification()
   }
 })
 

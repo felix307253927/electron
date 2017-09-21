@@ -14,8 +14,9 @@
         >
           <el-row>
             <el-col span="20">
-              <span class="mic-status" :style="{height:'36px'}"><span class="bar"
-                                                                      :style="{transform: vols[index]}"></span></span>
+              <span class="mic-status" :style="{height:'36px'}">
+                <span class="bar" :style="{transform: vols[index]}"></span>
+              </span>
               <el-input :value="mic.name" @input="modMic($event, mic)"></el-input>
             </el-col>
             <el-col span="4" class="del-mic">

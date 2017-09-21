@@ -14,15 +14,17 @@ class SplashWindow {
       title          : "unisound",
       resizable      : false,
       center         : true,
-      show           : true,
+      show           : false,
       frame          : false,
       autoHideMenuBar: true,
       alwaysOnTop    : true,
       icon           : '../resources/icon.png',
       titleBarStyle  : 'hidden',
     });
-    
     this.splashWindow.loadURL('file://' + path.join(__dirname, '../splash.html'));
+    this.splashWindow.once('ready-to-show', () => {
+      this.show()
+    })
   }
   
   show() {
