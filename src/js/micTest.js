@@ -8,11 +8,22 @@ class MicTest {
   constructor(channels) {
     this.voices   = {}
     this.channels = channels
-    navigator.mediaDevices.getUserMedia({
-      audio       : {
-        channelCount: channels
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+      console.log(devices)
+    })
+    navigator.mediaDevices.ondevicechange = (e) => {
+      console.log('device change', e)
+    }
+    
+    let ms = navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: channels,
       },
     }).then(stream => {
+      let audioTracks = stream.getAudioTracks();
+      console.log(audioTracks)
+      console.log(ms)
+      
       this.context                  = new AudioContext()
       this.mic                      = this.context.createMediaStreamSource(stream)
       this.processor                = this.context.createScriptProcessor(2048, channels, 1)
