@@ -133,6 +133,7 @@
               this.vols[i] = `translate3d(0,${100 - v}%,0)`
             }
           }
+
         } else {
           if (this.tester.isRunning) {
             this.tester.stop()

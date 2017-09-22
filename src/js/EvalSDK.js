@@ -101,6 +101,7 @@ function EvalSDK(conf, store) {
     navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: "default",
+        channelCount: this.channels
         // deviceId  : "6099b0c21e278ee33fa0a322629aab5cb9d2a394bcb76c98b11c99da14adf6e3",
         // groupId   : "a370f021288d0a86e0294160a5f1e2d93a6ed478025eb6ffba9b4b6683568083",
       }
@@ -285,6 +286,8 @@ function EvalSDK(conf, store) {
     let ajax = axios.post(`${config.host}:${config.port}/asr/pcm`, body, cfg).then(res => {
       if (res.data && !res.data.errcode) {
         return res.data
+      } else if (res.data.errcode === 4) {
+        _this.emit('error', err.SERVICE_ASR_ERROR)
       }
     }).catch(error => {
       console.error(error)

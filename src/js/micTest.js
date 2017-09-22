@@ -9,7 +9,9 @@ class MicTest {
     this.voices   = {}
     this.channels = channels
     navigator.mediaDevices.getUserMedia({
-      audio: true
+      audio       : {
+        channelCount: channels
+      },
     }).then(stream => {
       this.context                  = new AudioContext()
       this.mic                      = this.context.createMediaStreamSource(stream)
@@ -23,7 +25,8 @@ class MicTest {
       }
       this.start()
     }).catch(err => {
-      console.log(err)
+      console.error(err)
+      this.onError(err)
     })
   }
   
@@ -50,6 +53,9 @@ class MicTest {
     console.log(vol)
   }
   
+  onError(err) {
+    console.log(err)
+  }
 }
 
 export default MicTest

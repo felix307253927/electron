@@ -225,6 +225,10 @@
           this.$sdk.on('error', err => {
             if (err.code === ERRMSG.SERVICE_CONNECT_ERROR.code) {
               this.onConnectError && this.onConnectError()
+            } else if (ERRMSG.SERVICE_ASR_ERROR === err.code) {
+              this.$message({
+                type:'error',
+              })
             }
           })
         })
